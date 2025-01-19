@@ -34,14 +34,7 @@ from flask_migrate import Migrate   # migration initiators
 
 
 
-Your app.py configuration looks mostly correct. However, Heroku's DATABASE_URL environment variable may be using the postgres:// scheme, which is deprecated in SQLAlchemy. You'll need to update your code to handle that scenario. Here's the revised version:
 
-Updated Configuration
-Replace your existing app configuration block with the following:
-
-python
-Copy
-Edit
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
