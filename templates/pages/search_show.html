@@ -1,0 +1,22 @@
+{% extends 'layouts/main.html' %}
+{% block title %}Fyyur | Show Search{% endblock %}
+{% block content %}
+<h3>Number of search results for "{{ search_term }}": {{ results|length }}</h3>
+
+<ul class="items">
+    {% for show in results %}
+    <li>
+        <a href="/venues/{{ show.venue_id }}">
+            <i class="fas fa-calendar-alt"></i>
+            <div class="item">
+                <!-- Show Artist and Venue -->
+                <h5>{{ show.artist_name }} at {{ show.venue_name }}</h5>
+                
+                <!-- Show Start Time -->
+                <small style="color: #6c757d;">{{ show.start_time|datetime('medium') }}</small>
+            </div>
+        </a>
+    </li>
+    {% endfor %}
+</ul>
+{% endblock %}

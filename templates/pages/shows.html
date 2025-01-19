@@ -1,0 +1,75 @@
+{% extends 'layouts/main.html' %}
+{% block title %}Fyyur | Upcoming Shows{% endblock %}
+{% block content %}
+
+<style>
+  .shows-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 20px;
+  }
+
+  .show-card {
+    text-align: center;
+    max-width: 300px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #f9f9f9;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .show-card:hover {
+    transform: scale(1.05); /* Scale up by 5% */
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* Add a more pronounced shadow */
+  }
+
+  .show-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .show-details {
+    font-size: 1.2em;
+    margin: 10px 0;
+    color: #333;
+  }
+
+  .show-meta {
+    font-size: 1em;
+    color: #555;
+    margin-bottom: 15px;
+  }
+
+  
+</style>
+
+
+<div class="shows-container">
+  {% if shows %}
+    {% for show in shows %}
+    <div class="show-card">
+      <!-- Show Image -->
+      <a href="/artists/{{ show.artist_id }}">
+        <img src="{{ show.artist_image_link }}" alt="{{ show.artist_name }}" class="show-image">
+      </a>
+
+      <!-- Show Details -->
+      <div class="show-details">
+        <h3>{{ show.artist_name }}</h3>
+        <p class="show-meta">Playing at <a href="/venues/{{ show.venue_id }}">{{ show.venue_name }}</a></p>
+        <p class="show-meta">{{ show.start_time|datetime('full') }}</p>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p style="text-align: center; font-size: 1.2em; color: #555;">No upcoming shows found.</p>
+  {% endif %}
+</div>
+
+{% endblock %}

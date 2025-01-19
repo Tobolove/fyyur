@@ -1,0 +1,59 @@
+{% extends 'layouts/main.html' %}
+{% block title %}Fyyur | Venues{% endblock %}
+{% block content %}
+<div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: left; margin-top: 20px;">
+    {% for area in areas %}
+    <div style="width: 100%; margin-bottom: 20px; text-align: left;">
+        <h2 style="color: #444;">{{ area.city }}, {{ area.state }}</h2>
+    </div>
+    {% for venue in area.venues %}
+    <div class="venue-card">
+        <!-- Venue Image -->
+        <a href="/venues/{{ venue.id }}">
+            <img src="{{ venue.image_link }}" alt="{{ venue.name }}" class="venue-image">
+        </a>
+        
+        <!-- Venue Name -->
+        <h3 class="venue-name">{{ venue.name }}</h3>
+        
+        <!-- Number of Upcoming Shows -->
+        <p class="upcoming-shows">{{ venue.num_upcoming_shows }} upcoming shows</p>
+    </div>
+    {% endfor %}
+    {% endfor %}
+</div>
+
+<style>
+    .venue-card {
+        text-align: center;
+        max-width: 300px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        background-color: #f9f9f9;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .venue-card:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+    .venue-image {
+        width: 100%;
+        max-height: 300px;
+		width: 100%;
+        display: block;
+        border-bottom: 1px solid #ddd;
+    }
+    .venue-name {
+        font-size: 1.5em;
+        margin: 10px 0;
+        color: #333;
+    }
+    .upcoming-shows {
+        font-size: 1em;
+        color: #555;
+        margin-bottom: 15px;
+    }
+</style>
+{% endblock %}
