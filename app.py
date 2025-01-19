@@ -23,7 +23,8 @@ from flask_migrate import Migrate   # migration initiators
 #----------------------------------------------------------------------------#
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:abc@localhost:5432/fyyur'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:abc@localhost:5432/fyyur'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://localhost/fyyur')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'abc'  
 app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF  for testing purposes
