@@ -23,15 +23,45 @@ from flask_migrate import Migrate   # migration initiators
 # App Config.
 #----------------------------------------------------------------------------#
 
-app = Flask(__name__)
+#app = Flask(__name__)
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:abc@localhost:5432/fyyur'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://localhost/fyyur')
+#app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+#app.config['SECRET_KEY'] = 'abc'  
+#app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF  for testing purposes
+#moment = Moment(app)
+#db = SQLAlchemy(app)
+#migrate = Migrate(app, db)
+
+
+
+Your app.py configuration looks mostly correct. However, Heroku's DATABASE_URL environment variable may be using the postgres:// scheme, which is deprecated in SQLAlchemy. You'll need to update your code to handle that scenario. Here's the revised version:
+
+Updated Configuration
+Replace your existing app configuration block with the following:
+
+python
+Copy
+Edit
+#----------------------------------------------------------------------------#
+# App Config.
+#----------------------------------------------------------------------------#
+
+app = Flask(__name__)
+
+# Fix for deprecated 'postgres://' scheme in Heroku DATABASE_URL
+database_url = os.getenv('DATABASE_URL', 'postgresql://localhost/fyyur')
+if database_url.startswith('postgres://'):
+    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'abc'  
-app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF  for testing purposes
+app.config['SECRET_KEY'] = 'abc'
+app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for testing purposes
+
 moment = Moment(app)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+
 
 
 #----------------------------------------------------------------------------#
