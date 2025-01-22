@@ -1,6 +1,5 @@
 from datetime import datetime
 from flask_wtf import FlaskForm
-from config import SECRET_KEY
 from wtforms import StringField, SelectField, SelectMultipleField, BooleanField, TextAreaField
 from wtforms.validators import DataRequired, URL, Optional
 from wtforms.fields import DateTimeLocalField

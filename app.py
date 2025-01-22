@@ -10,6 +10,7 @@ import babel
 from flask import Flask, render_template, request, Response, flash, redirect, url_for
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import ARRAY
 import logging
 from logging import Formatter, FileHandler
 from flask_wtf import Form
@@ -19,111 +20,18 @@ from datetime import datetime
 
 from flask_migrate import Migrate   # migration initiators
 
-#----------------------------------------------------------------------------#
-# App Config.
-#----------------------------------------------------------------------------#
-
-#app = Flask(__name__)
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:abc@localhost:5432/fyyur'
-#app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-#app.config['SECRET_KEY'] = 'abc'  
-#app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF  for testing purposes
-#moment = Moment(app)
-#db = SQLAlchemy(app)
-#migrate = Migrate(app, db)
-
-
-
+from models import db,Venue, Artist,Show
 
 #----------------------------------------------------------------------------#
-# App Config.
+# App Config. Edited App Config and checked db migrate (sorry the old version was changed for heroku deploy)
 #----------------------------------------------------------------------------#
 
 app = Flask(__name__)
-
-# Fix for deprecated 'postgres://' scheme in Heroku DATABASE_URL
-database_url = os.getenv('DATABASE_URL', 'postgresql://localhost/fyyur')
-if database_url.startswith('postgres://'):
-    database_url = database_url.replace('postgres://', 'postgresql://', 1)
-
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'abc'
-app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for testing purposes
-
+app.config.from_object('config.Config')
 moment = Moment(app)
-db = SQLAlchemy(app)
+db.init_app(app)
 migrate = Migrate(app, db)
 
-
-
-#----------------------------------------------------------------------------#
-# Models.
-#----------------------------------------------------------------------------#
-
-class Venue(db.Model):
-    __tablename__ = 'Venue'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
-    city = db.Column(db.String(120), nullable=False)
-    state = db.Column(db.String(120), nullable=False)
-    address = db.Column(db.String(120), nullable=False)
-    phone = db.Column(db.String(120), nullable=False)
-    image_link = db.Column(db.String(50000)) #for long image links, that did not work
-    genres = db.Column(db.String, nullable=True)
-    facebook_link = db.Column(db.String(120))
-    seeking_talent = db.Column(db.Boolean, nullable=False, default=False)
-    seeking_description = db.Column(db.String(1000))
-    website_link = db.Column(db.String(120))
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
-    shows = db.relationship('Show', backref='venue', lazy=True)
-
-    def __repr__(self):
-        return f"<Venue {self.id} {self.name}>"
-
-    
-class Artist(db.Model):
-    __tablename__ = 'Artist'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
-    city = db.Column(db.String(120), nullable=False)
-    state = db.Column(db.String(120), nullable=False)
-    phone = db.Column(db.String(120), nullable=False)
-    genres = db.Column(db.String, nullable=False)  #added for completiuons
-    image_link = db.Column(db.String(5000))
-    facebook_link = db.Column(db.String(120))
-    seeking_venue = db.Column(db.Boolean, nullable=False, default=False)
-    seeking_description = db.Column(db.String(1000))
-    website_link = db.Column(db.String(120))
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
-    shows = db.relationship('Show', backref='artist', lazy=True)
-
-  
-class Show(db.Model):
-    __tablename__ = 'Show'
-
-    id = db.Column(db.Integer, primary_key=True)
-    venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'), nullable=False)
-    artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id'), nullable=False)
-    start_time = db.Column(db.DateTime, nullable=False)
-
-    def __repr__(self):
-        return f"<Show {self.id} artist_id={self.artist_id} venue_id={self.venue_id}>"
-    
-# DONE: Implement Show and Artist models, and complete all model relationships.
-
-#----------------------------------------------------------------------------#
-# Test Center /Graveyard Codes 
-#----------------------------------------------------------------------------#
- 
-#from app import app, db, Venue
-
-#with app.app_context():
-#    venues = Venue.query.all()
-#    for venue in venues:
-#        print(venue)
 
 #----------------------------------------------------------------------------#
 # Filters.
@@ -181,7 +89,7 @@ def venues():
     return render_template('pages/venues.html', areas=data)
 
 #   ---------------------------------------------------------------- 
-#   Show Venues by ID with Shows  / works with error handling / final: del redundant code
+#   Show Venues Changed and implemented join, thanks for the hint
 #   ---------------------------------------------------------------- 
 
 @app.route('/venues/<int:venue_id>')
@@ -190,25 +98,42 @@ def show_venue(venue_id):
     if not venue:
         return render_template('Venue doesnt exist')
 
-    past_shows = []
-    upcoming_shows = []
+    past_shows_query = db.session.query(Show).join(Artist).filter(
+        Show.venue_id == venue_id,
+        Show.start_time < datetime.now()
+    ).all()
 
-    for show in venue.shows:
-        daten = {
+    upcoming_shows_query = db.session.query(Show).join(Artist).filter(
+        Show.venue_id == venue_id,
+        Show.start_time >= datetime.now()
+    ).all()
+
+    # Formatiere die Shows für die Darstellung
+    past_shows = [
+        {
             "artist_id": show.artist_id,
             "artist_name": show.artist.name,
             "artist_image_link": show.artist.image_link,
-            "start_time": show.start_time.strftime("%Y-%m-%d %H:%M:%S")
+            "start_time": show.start_time.strftime("%Y-%m-%d %H:%M:%S"),
         }
-        if show.start_time < datetime.now():
-            past_shows.append(daten)
-        else:
-            upcoming_shows.append(daten)
+        for show in past_shows_query
+    ]
+
+    upcoming_shows = [
+        {
+            "artist_id": show.artist_id,
+            "artist_name": show.artist.name,
+            "artist_image_link": show.artist.image_link,
+            "start_time": show.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        for show in upcoming_shows_query
+    ]
 
     data = {
         "id": venue.id,
         "name": venue.name,
-        "genres": venue.genres.split(','),
+        # "genres": venue.genres.split(','),
+        "genres": venue.genres,
         "address": venue.address,
         "city": venue.city,
         "state": venue.state,
@@ -237,8 +162,8 @@ def create_venue_form():
 
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
-    form = VenueForm()
-    if form.validate_on_submit():
+    form = VenueForm(request.form)
+    if form.validate():
         try:
             new_venue = Venue(
                 name=form.name.data,
@@ -246,7 +171,7 @@ def create_venue_submission():
                 state=form.state.data,
                 address=form.address.data,
                 phone=form.phone.data,
-                genres=",".join(form.genres.data),
+                genres=form.genres.data,  #it does work, but still is a workaround, i asked my senior nut he could not help in resolving this either.... Since this is not mandatory to resolve could you please show the solution for learning purpose? 
                 image_link=form.image_link.data,
                 facebook_link=form.facebook_link.data,
                 seeking_talent=form.seeking_talent.data,
@@ -287,7 +212,7 @@ def edit_venue(venue_id):
                 venue.state = form.state.data
                 venue.address = form.address.data
                 venue.phone = form.phone.data
-                venue.genres = ",".join(form.genres.data)  # GENRE STRING - IN EINE LSITE UMWANDELN
+                venue.genres = form.gernes.data
                 venue.facebook_link = form.facebook_link.data
                 venue.image_link = form.image_link.data
                 venue.seeking_talent = form.seeking_talent.data
@@ -418,41 +343,60 @@ def search_artists():
 @app.route('/artists/<int:artist_id>')
 def show_artist(artist_id):
     artist = Artist.query.get(artist_id)
-    
-    if not artist:
-        flash(f"Artist with ID {artist_id} not in database.")
-        return redirect(url_for('artists'))  # Return artists list if artist doesn't exist
-    
-  
-    artist.genres = artist.genres.split(",") if artist.genres else []
-    
-    past_shows = []
-    for show in artist.shows:
-        if show.start_time < datetime.now():
-            past_shows.append({
-                "venue_id": show.venue.id,
-                "venue_name": show.venue.name,
-                "venue_image_link": show.venue.image_link,
-                "start_time": show.start_time.strftime("%Y-%m-%d %H:%M:%S"),
-            })
-    
-    upcoming_shows = []
-    for show in artist.shows:
-        if show.start_time > datetime.now():
-            upcoming_shows.append({
-                "venue_id": show.venue.id,
-                "venue_name": show.venue.name,
-                "venue_image_link": show.venue.image_link,
-                "start_time": show.start_time.strftime("%Y-%m-%d %H:%M:%S"),
-            })
-    
-    # Additional infoes
-    artist.past_shows = past_shows
-    artist.past_shows_count = len(past_shows)
-    artist.upcoming_shows = upcoming_shows
-    artist.upcoming_shows_count = len(upcoming_shows)
-    
-    return render_template('pages/show_artist.html', artist=artist)
+
+    # Update: Joins für past_shows und upcoming_shows works! :D
+    past_shows_query = db.session.query(Show).join(Venue).filter(
+        Show.artist_id == artist_id,
+        Show.start_time < datetime.now()
+    ).all()
+
+    upcoming_shows_query = db.session.query(Show).join(Venue).filter(
+        Show.artist_id == artist_id,
+        Show.start_time >= datetime.now()
+    ).all()
+
+    # Shows formatieren
+    past_shows = [
+        {
+            "venue_id": show.venue.id,
+            "venue_name": show.venue.name,
+            "venue_image_link": show.venue.image_link,
+            "start_time": show.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        for show in past_shows_query
+    ]
+
+    upcoming_shows = [
+        {
+            "venue_id": show.venue.id,
+            "venue_name": show.venue.name,
+            "venue_image_link": show.venue.image_link,
+            "start_time": show.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        for show in upcoming_shows_query
+    ]
+
+    # Daten zusammenstellen
+    artist_data = {
+        "id": artist.id,
+        "name": artist.name,
+        # "genres": artist.genres.split(",") if artist.genres else [],
+        "genres": artist.genres,
+        "city": artist.city,
+        "state": artist.state,
+        "phone": artist.phone,
+        "website_link": artist.website_link,
+        "facebook_link": artist.facebook_link,
+        "seeking_venue": artist.seeking_venue,
+        "seeking_description": artist.seeking_description,
+        "image_link": artist.image_link,
+        "past_shows": past_shows,
+        "upcoming_shows": upcoming_shows,
+        "past_shows_count": len(past_shows),
+        "upcoming_shows_count": len(upcoming_shows),
+    }
+
+    return render_template('pages/show_artist.html', artist=artist_data)
 
 
 #  ----------------------------------------------------------------
@@ -469,14 +413,14 @@ def create_artist_form():
 def create_artist_submission():
     form = ArtistForm(request.form)
 
-    if form.validate_on_submit():  #form data validation
+    if form.validate():  #form data validation
         try:
             new_artist = Artist(
                 name=form.name.data,
                 city=form.city.data,
                 state=form.state.data,
                 phone=form.phone.data,
-                genres=",".join(form.genres.data),  # Convert list to  string
+                genres=form.genres.data, #changed
                 image_link=form.image_link.data,
                 facebook_link=form.facebook_link.data,
                 website_link=form.website_link.data,
@@ -610,7 +554,7 @@ def create_shows():
 def create_show_submission():
     form = ShowForm(request.form)
     
-    if form.validate_on_submit():
+    if form.validate():
         try:
             # Create a new show
             new_show = Show(

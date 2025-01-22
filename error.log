@@ -3758,3 +3758,4 @@ jinja2.exceptions.UndefinedError: 'venue' is undefined
 2025-01-19 10:01:06,401 INFO: errors [in c:\Users\tobia\class-demos\fyyur\app.py:650]
 2025-01-19 10:26:40,141 INFO: errors [in c:\Users\tobia\class-demos\fyyur\app.py:655]
 2025-01-19 10:43:13,147 INFO: errors [in c:\Users\tobia\class-demos\fyyur\app.py:655]
+2025-01-19 11:03:14,087 INFO: errors [in C:\Users\tobia\class-demos\fyyur\app.py:655]
